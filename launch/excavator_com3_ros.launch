@@ -1,10 +1,15 @@
 <launch>
-  <arg name="port" default="/dev/ttyS1"/>
-  <group ns="zx120">
-   <node pkg="hitachi_ros" name="hitachi_ros" type="hitachi_ros" output="screen">
-    	<param name="port_name" type="string" value="$(arg port)"/>
-	<param name="channel" type="int" value="12" />
-	<remap from="js_cmd" to="hitachi_ros/js_cmd"/>
+  <arg name="can_port" default="vcan0"/>
+  <arg name="dbc_path" default="/usr/local/share/dbc/excavator_com3.dbc"/>
+  
+  <node pkg="excavator_com3_ros" name="lever_cmd_relay" type="lever_cmd_relay" output="screen">
+    <param name="can_port" type="string" value="$(arg can_port)"/>
+    <param name="dbc_path" type="string" value="$(arg dbc_path)"/>      
   </node>
-  </group>
+  
+  <node pkg="excavator_com3_ros" name="machine_setting_cmd_relay" type="machine_setting_cmd_relay" output="screen">
+    <param name="can_port" type="string" value="$(arg can_port)"/>
+    <param name="dbc_path" type="string" value="$(arg dbc_path)"/>      
+  </node>
+
 </launch>
