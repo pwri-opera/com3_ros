@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   geometry_msgs
+  com3_msgs
 )
 
 find_package(canary REQUIRED)
@@ -31,9 +32,9 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(excavator_com3_ros src/excavator_com3_ros.cpp)
+add_executable(lever_cmd_relay src/lever_cmd_relay.cpp)
 
-target_link_libraries(excavator_com3_ros PUBLIC 
+target_link_libraries(lever_cmd_relay PUBLIC 
    ${catkin_LIBRARIES}
   canary::canary
   boost_system
