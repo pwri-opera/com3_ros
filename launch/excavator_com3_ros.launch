@@ -1,0 +1,10 @@
+<launch>
+  <arg name="port" default="/dev/ttyS1"/>
+  <group ns="zx120">
+   <node pkg="hitachi_ros" name="hitachi_ros" type="hitachi_ros" output="screen">
+    	<param name="port_name" type="string" value="$(arg port)"/>
+	<param name="channel" type="int" value="12" />
+	<remap from="js_cmd" to="hitachi_ros/js_cmd"/>
+  </node>
+  </group>
+</launch>
