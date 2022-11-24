@@ -44,7 +44,14 @@ target_link_libraries(lever_cmd_relay PUBLIC
   RTTR::Core
 )
 
-# add_executable(joy2cmd src/joy2cmd.cpp)
+add_executable(machine_setting_cmd_relay src/machine_setting_cmd_relay.cpp)
 
-# target_link_libraries(joy2cmd
-#    ${catkin_LIBRARIES})
+target_link_libraries(machine_setting_cmd_relay PUBLIC 
+   ${catkin_LIBRARIES}
+  canary::canary
+  boost_system
+  boost_thread
+  boost_timer
+  dbcppp
+  RTTR::Core
+)
