@@ -47,7 +47,7 @@ ament_target_dependencies(lever_cmd_relay
   std_msgs
   geometry_msgs 
 )
-target_link_libraries((machine_setting_cmd_relay
+target_link_libraries(machine_setting_cmd_relay
   canary::canary
   boost_system
   boost_thread
