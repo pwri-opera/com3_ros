@@ -6,6 +6,8 @@
 #include <com3/excavator_com3_dbc.hpp>
 
 #define initial_interval 100
+#define cmd_timeout 500
+
 namespace excavator_com3_can
 {
   class machine_setting_cmd_relay : public excavator_com3_dbc
@@ -39,7 +41,13 @@ namespace excavator_com3_can
   private:
     void send_machine_setting_cmd()
     {
-      frame f={};
+      ros::Duration elapsed_last_cmd = ros::Time::now() - last_cmd_recv_time;
+      if (elapsed_last_cmd.toSec() * 1000. > cmd_timeout)
+      {
+
+      }
+
+      frame f = {};
       setting_cmd->alive_counter++;
 
       excavator_com3_dbc::encode(*setting_cmd, f);
@@ -72,12 +80,13 @@ namespace excavator_com3_can
 
     void machine_setting_cmd_callback(const com3_msgs::excavator_com3_machine_setting::ConstPtr &msg)
     {
+      last_cmd_recv_time = ros::Time::now();
+
       setting_cmd->engine_rpm = msg->engine_rpm;
       setting_cmd->engine_onoff = msg->engine_off;
       setting_cmd->hydraulic_onoff = msg->hydraulic_off;
       setting_cmd->power_eco_mode = msg->power_eco_mode;
       setting_cmd->travel_mode = msg->travel_mode;
-      last_cmd_time = ros::Time::now();
     }
 
     boost::asio::steady_timer send_timer;
@@ -87,7 +96,7 @@ namespace excavator_com3_can
 
     ros::NodeHandle nh;
     ros::Subscriber sub_js_cmd, sub_travel_cmd;
-    ros::Time last_cmd_time;
+    ros::Time last_cmd_recv_time;
 
     std::uint8_t alive_cnt;
   };

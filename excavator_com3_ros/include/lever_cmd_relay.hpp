@@ -6,6 +6,8 @@
 #include <com3_msgs/excavator_com3_lever_2.h>
 
 #define initial_interval 100
+#define cmd_timeout 500
+
 namespace excavator_com3_can
 {
   class lever_cmd_relay : public excavator_com3_dbc
@@ -43,7 +45,20 @@ namespace excavator_com3_can
   private:
     void send_lever_cmd_1()
     {
+      ros::Duration elapsed_last_cmd = ros::Time::now() - last_lever_cmd_1_recv_time;
+
       frame f = {};
+      if (elapsed_last_cmd.toSec()*1000. > cmd_timeout)
+      {       
+        lever_cmd_1->swing_cmd = 0;
+        lever_cmd_1->swing_status_cmd = true;
+        lever_cmd_1->boom_cmd = 0;
+        lever_cmd_1->boom_status_cmd = true;
+        lever_cmd_1->arm_cmd = 0;
+        lever_cmd_1->arm_status_cmd = true;
+        lever_cmd_1->bucket_cmd = 0;
+        lever_cmd_1->bucket_status_cmd = true;
+      }
       excavator_com3_dbc::encode(*lever_cmd_1, f);
 
       sock.async_send(canary::net::buffer(&f, sizeof(f)), boost::bind(&lever_cmd_relay::send_handle, this));
@@ -53,7 +68,16 @@ namespace excavator_com3_can
 
     void send_lever_cmd_2()
     {
+      ros::Duration elapsed_last_cmd = ros::Time::now() - last_lever_cmd_2_recv_time;
+
       frame f = {};
+      if (elapsed_last_cmd.toSec() * 1000. > cmd_timeout)
+      {
+        lever_cmd_2->left_track_cmd = 0;
+        lever_cmd_2->left_track_status_cmd = true;
+        lever_cmd_2->right_track_cmd = 0;
+        lever_cmd_2->right_track_status_cmd = true;
+      }
       excavator_com3_dbc::encode(*lever_cmd_2, f);
 
       sock.async_send(canary::net::buffer(&f, sizeof(f)), boost::bind(&lever_cmd_relay::send_handle, this));
@@ -84,34 +108,31 @@ namespace excavator_com3_can
 
     void lever1_cmd_callback(const com3_msgs::excavator_com3_lever_1::ConstPtr &msg)
     {
+      last_lever_cmd_1_recv_time = ros::Time::now();
+
       lever_cmd_1->swing_cmd = std::abs(msg->swing_cmd);
       lever_cmd_1->swing_status_cmd = 0;
       lever_cmd_1->swing_direction_cmd = std::signbit(msg->swing_cmd);
-
       lever_cmd_1->boom_cmd = std::abs(msg->boom_cmd);
       lever_cmd_1->boom_status_cmd = 0;
       lever_cmd_1->boom_direction_cmd = std::signbit(msg->boom_cmd);
-
       lever_cmd_1->arm_cmd = std::abs(msg->arm_cmd);
       lever_cmd_1->arm_status_cmd = 0;
       lever_cmd_1->arm_direction_cmd = std::signbit(msg->arm_cmd);
-
       lever_cmd_1->bucket_cmd = std::abs(msg->bucket_cmd);
       lever_cmd_1->bucket_status_cmd = 0;
       lever_cmd_1->bucket_direction_cmd = std::signbit(msg->bucket_cmd);
-
-      last_cmd_time = ros::Time::now();
     }
     void lever2_cmd_callback(const com3_msgs::excavator_com3_lever_2::ConstPtr &msg)
     {
+      last_lever_cmd_2_recv_time = ros::Time::now();
+
       lever_cmd_2->left_track_cmd = std::abs(msg->left_track_cmd);
       lever_cmd_2->left_track_status_cmd = 0;
       lever_cmd_2->left_track_direction_cmd = std::signbit(msg->left_track_cmd);
       lever_cmd_2->right_track_cmd = std::abs(msg->right_track_cmd);
       lever_cmd_2->right_track_status_cmd = 0;
       lever_cmd_2->right_track_direction_cmd = std::signbit(msg->right_track_cmd);
-
-      last_cmd_time = ros::Time::now();
     }
 
     boost::asio::steady_timer send_timer, send_timer1;
@@ -122,7 +143,7 @@ namespace excavator_com3_can
 
     ros::NodeHandle nh;
     ros::Subscriber sub_js_cmd, sub_travel_cmd;
-    ros::Time last_cmd_time;
+    ros::Time last_lever_cmd_1_recv_time, last_lever_cmd_2_recv_time;
 
     std::uint8_t alive_cnt;
   };
