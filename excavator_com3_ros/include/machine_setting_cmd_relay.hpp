@@ -17,8 +17,6 @@ namespace excavator_com3_can
               send_timer(io, boost::asio::chrono::milliseconds(initial_interval)),
               sock(io)
         {
-            node_ = rclcpp::Node::make_shared("machine_setting_cmd_relay");
-
             const auto idx = canary::get_interface_index(can_port);
             auto const ep = canary::raw::endpoint{idx};
             sock.open();
@@ -33,6 +31,7 @@ namespace excavator_com3_can
             node_ = rclcpp::Node::make_shared("machine_seting_cmd_relay");
             sub_js_cmd = node->create_subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>("machine_setting", 10, [this](const com3_msgs::msg::ExcavatorCom3MachineSetting::SharedPtr msg)
                                                                                                 { this->machine_setting_cmd_callback(msg); });
+            rclcpp::spin(node_);
         }
 
         ~machine_setting_cmd_relay()
