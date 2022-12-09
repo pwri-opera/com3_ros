@@ -2,7 +2,7 @@
 #include <iostream>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
-#include "com3_msgs/msg/ExcavatorCom3MachineSetting.h"
+#include "com3_msgs/msg/excavator_com3_machine_setting.hpp"
 
 #include <com3/excavator_com3_dbc.hpp>
 
