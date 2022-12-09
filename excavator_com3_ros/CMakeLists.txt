@@ -1,41 +1,36 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
 project(excavator_com3_ros)
 
+# Default to C++14
 set (CMAKE_CXX_STANDARD 17)
 
-# add_compile_options(-std=c++11)
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
-  geometry_msgs
-  com3_msgs
-)
-
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclpy REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(com3_msgs REQUIRED)
 find_package(canary REQUIRED)
-
-find_package(Boost 1.70 REQUIRED)
-
+find_package(Boost 1.70 COMPONENTS system thread timer REQUIRED)
 find_package(RTTR CONFIG REQUIRED Core)
-
-
-catkin_package(
-  INCLUDE_DIRS include
-  # LIBRARIES operation_cmd_handler
-  CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs
-  DEPENDS system_lib
-)
 
 include_directories(
   include
-  ${catkin_INCLUDE_DIRS}
 )
 
 add_executable(lever_cmd_relay src/lever_cmd_relay.cpp)
-
-target_link_libraries(lever_cmd_relay PUBLIC 
-   ${catkin_LIBRARIES}
+ament_target_dependencies(lever_cmd_relay
+  rclcpp
+  rclpy
+  com3_msgs
+  std_msgs
+  geometry_msgs 
+)
+target_link_libraries(lever_cmd_relay
   canary::canary
   boost_system
   boost_thread
@@ -44,10 +39,15 @@ target_link_libraries(lever_cmd_relay PUBLIC
   RTTR::Core
 )
 
-add_executable(machine_setting_cmd_relay src/machine_setting_cmd_relay.cpp)
-
-target_link_libraries(machine_setting_cmd_relay PUBLIC 
-   ${catkin_LIBRARIES}
+add_executable(machine_setting_cmd_relay src/lever_cmd_relay.cpp)
+ament_target_dependencies(lever_cmd_relay
+  rclcpp
+  rclpy
+  com3_msgs
+  std_msgs
+  geometry_msgs 
+)
+target_link_libraries((machine_setting_cmd_relay
   canary::canary
   boost_system
   boost_thread
@@ -55,3 +55,18 @@ target_link_libraries(machine_setting_cmd_relay PUBLIC
   dbcppp
   RTTR::Core
 )
+
+install(TARGETS 
+  lever_cmd_relay
+  machine_setting_cmd_relay
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}/
+)
+
+
+ament_package()
