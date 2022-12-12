@@ -29,8 +29,8 @@ namespace excavator_com3_can
             send_timer.async_wait(boost::bind(&machine_setting_cmd_relay::send_machine_setting_cmd, this));
 
             node_ = rclcpp::Node::make_shared("machine_seting_cmd_relay");
-            sub_js_cmd = node->create_subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>("machine_setting", 10, [this](const com3_msgs::msg::ExcavatorCom3MachineSetting::SharedPtr msg)
-                                                                                                { this->machine_setting_cmd_callback(msg); });
+            sub_js_cmd = node_->create_subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>("machine_setting", 10, [node_](const com3_msgs::msg::ExcavatorCom3MachineSetting::SharedPtr &msg)
+                                                                                                 { this->machine_setting_cmd_callback(msg); });
             rclcpp::spin(node_);
         }
 
