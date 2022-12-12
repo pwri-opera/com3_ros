@@ -39,7 +39,7 @@ include_directories(
 #   RTTR::Core
 # )
 
-add_executable(machine_setting_cmd_relay src/lever_cmd_relay.cpp)
+add_executable(machine_setting_cmd_relay src/machine_setting_cmd_relay.cpp)
 ament_target_dependencies(machine_setting_cmd_relay
   rclcpp
   rclpy
