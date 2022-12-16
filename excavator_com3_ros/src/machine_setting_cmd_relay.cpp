@@ -22,12 +22,21 @@ int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
     canary::net::io_context ioc;
-    // TODO: com3_can_port, dbc_path の ros parameter 化
-    std::string com3_can_port = "vcan0";
-    std::string dbc_path = "/usr/local/share/dbc/excavator_com3.dbc";
+    std::string com3_can_port;
+    std::string dbc_path;
+
+    // created a node that gets parameters outside machine_setting_cmd_relay class
+    {
+      auto param_node = rclcpp::Node::make_shared("get_parameters");
+      param_node->declare_parameter("can_port", "can");
+      param_node->declare_parameter("dbc_path", "excavator_com3.dbc");
+
+      com3_can_port = param_node->get_parameter("can_port").get_parameter_value().get<std::string>();
+      dbc_path = param_node->get_parameter("dbc_path").get_parameter_value().get<std::string>();
+    }
 
     auto node_ = std::make_shared<excavator_com3_can::machine_setting_cmd_relay>(ioc, com3_can_port, dbc_path);
-        
+
     boost::thread t(boost::bind(&boost::asio::io_context::run, &ioc));
 
     rclcpp::spin(node_);

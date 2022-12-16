@@ -18,20 +18,23 @@ namespace excavator_com3_can
             : excavator_com3_dbc(dbc_path), rclcpp::Node("machine_setting_cmd_relay"),
               sock(io), send_timer(io, boost::asio::chrono::milliseconds(initial_interval))
         {
-            const auto idx = canary::get_interface_index(can_port);
-            auto const ep = canary::raw::endpoint{idx};
-            sock.open();
-            sock.bind(ep);
+          this->declare_parameter("can_port", "can");
+          this->declare_parameter("dbc_path", "excavator_com3.dbc");
 
-            setting_cmd = std::make_shared<excavator_com3::machine_setting_cmd>();
+          const auto idx = canary::get_interface_index(can_port);
+          auto const ep = canary::raw::endpoint{idx};
+          sock.open();
+          sock.bind(ep);
 
-            alive_cnt = 0;
-            start_receive();
-            send_timer.async_wait(boost::bind(&machine_setting_cmd_relay::send_machine_setting_cmd, this));
+          setting_cmd = std::make_shared<excavator_com3::machine_setting_cmd>();
 
-            sub_js_cmd = this->create_subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>(
-                "machine_setting", 10, [this](const com3_msgs::msg::ExcavatorCom3MachineSetting::SharedPtr msg)
-                { this->machine_setting_cmd_callback(msg); });
+          alive_cnt = 0;
+          start_receive();
+          send_timer.async_wait(boost::bind(&machine_setting_cmd_relay::send_machine_setting_cmd, this));
+
+          sub_js_cmd = this->create_subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>(
+              "machine_setting", 10, [this](const com3_msgs::msg::ExcavatorCom3MachineSetting::SharedPtr msg)
+              { this->machine_setting_cmd_callback(msg); });
         }
 
         ~machine_setting_cmd_relay()
