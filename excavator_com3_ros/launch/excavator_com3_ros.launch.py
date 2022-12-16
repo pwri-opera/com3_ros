@@ -11,7 +11,6 @@ from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.actions import PushRosNamespace
 
-
 def generate_launch_description():
 
     # Define arguments for launch files
@@ -25,7 +24,7 @@ def generate_launch_description():
     )
     declare_dbc_path = DeclareLaunchArgument(
         "dbc_path",
-        default_value="~/ros2_ws/src/com3_ros/excavator_com3_ros/include/com3/excavator_com3.dbc",
+        default_value="/usr/local/share/dbc/excavator_com3.dbc",
         description=""
     )
 
@@ -41,7 +40,7 @@ def generate_launch_description():
         package="excavator_com3_ros",
         name="machine_setting_cmd_relay",
         executable="machine_setting_cmd_relay",
-        # parameters=[{"can_port": can_port, "dbc_path": dbc_path}],
+        parameters=[{"can_port": can_port, "dbc_path": dbc_path}],
         output="screen",
     )
 

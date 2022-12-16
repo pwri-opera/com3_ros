@@ -7,6 +7,8 @@
 #include <com3/excavator_com3_dbc.hpp>
 
 #define initial_interval 100
+#define cmd_timeout 500
+
 namespace excavator_com3_can
 {
     class machine_setting_cmd_relay : public excavator_com3_dbc
@@ -29,7 +31,7 @@ namespace excavator_com3_can
             send_timer.async_wait(boost::bind(&machine_setting_cmd_relay::send_machine_setting_cmd, this));
 
             node_ = rclcpp::Node::make_shared("machine_seting_cmd_relay");
-            sub_js_cmd = node_->create_subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>("machine_setting", 10, [node_](const com3_msgs::msg::ExcavatorCom3MachineSetting::SharedPtr &msg)
+            sub_js_cmd = node_->create_subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>("machine_setting", 10, [this](const com3_msgs::msg::ExcavatorCom3MachineSetting::SharedPtr msg)
                                                                                                  { this->machine_setting_cmd_callback(msg); });
             rclcpp::spin(node_);
         }
@@ -75,7 +77,7 @@ namespace excavator_com3_can
 
         void machine_setting_cmd_callback(const com3_msgs::msg::ExcavatorCom3MachineSetting::SharedPtr &msg)
         {
-            setting_cmd->engine_rpm = msg->engine_rpm;
+            setting_cmd->engine_rpm = (uint8_t)msg->engine_rpm;
             setting_cmd->engine_onoff = msg->engine_off;
             setting_cmd->hydraulic_onoff = msg->hydraulic_off;
             setting_cmd->power_eco_mode = msg->power_eco_mode;
@@ -90,7 +92,7 @@ namespace excavator_com3_can
 
         // ros::NodeHandle nh;
         rclcpp::Node::SharedPtr node_;
-        rclcpp::Subscription<com3_msgs::msg::ExcavatorCom3MachineSetting> sub_js_cmd, sub_travel_cmd;
+        rclcpp::Subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>::SharedPtr sub_js_cmd, sub_travel_cmd;
         rclcpp::Time last_cmd_time;
 
         std::uint8_t alive_cnt;
