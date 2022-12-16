@@ -22,22 +22,22 @@ include_directories(
   include
 )
 
-# add_executable(lever_cmd_relay src/lever_cmd_relay.cpp)
-# ament_target_dependencies(lever_cmd_relay
-#   rclcpp
-#   rclpy
-#   com3_msgs
-#   std_msgs
-#   geometry_msgs 
-# )
-# target_link_libraries(lever_cmd_relay
-#   canary::canary
-#   boost_system
-#   boost_thread
-#   boost_timer
-#   dbcppp
-#   RTTR::Core
-# )
+add_executable(lever_cmd_relay src/lever_cmd_relay.cpp)
+ament_target_dependencies(lever_cmd_relay
+  rclcpp
+  rclpy
+  com3_msgs
+  std_msgs
+  geometry_msgs 
+)
+target_link_libraries(lever_cmd_relay
+  canary::canary
+  boost_system
+  boost_thread
+  boost_timer
+  dbcppp
+  RTTR::Core
+)
 
 add_executable(machine_setting_cmd_relay src/machine_setting_cmd_relay.cpp)
 ament_target_dependencies(machine_setting_cmd_relay
@@ -57,7 +57,7 @@ target_link_libraries(machine_setting_cmd_relay
 )
 
 install(TARGETS 
-  # lever_cmd_relay
+  lever_cmd_relay
   machine_setting_cmd_relay
   DESTINATION lib/${PROJECT_NAME}
 )
