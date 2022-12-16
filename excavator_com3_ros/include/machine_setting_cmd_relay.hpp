@@ -15,17 +15,15 @@ namespace excavator_com3_can
     {
     public:
         machine_setting_cmd_relay(boost::asio::io_context &io, std::string can_port, std::string dbc_path)
-            : excavator_com3_dbc(dbc_path),
-              send_timer(io, boost::asio::chrono::milliseconds(initial_interval)),
-              sock(io),
-              rclcpp::Node("machine_setting_cmd_relay")
+            : excavator_com3_dbc(dbc_path), rclcpp::Node("machine_setting_cmd_relay"),
+              sock(io), send_timer(io, boost::asio::chrono::milliseconds(initial_interval))
         {
             const auto idx = canary::get_interface_index(can_port);
             auto const ep = canary::raw::endpoint{idx};
             sock.open();
             sock.bind(ep);
 
-            setting_cmd = boost::make_shared<excavator_com3::machine_setting_cmd>();
+            setting_cmd = std::make_shared<excavator_com3::machine_setting_cmd>();
 
             alive_cnt = 0;
             start_receive();
@@ -82,19 +80,15 @@ namespace excavator_com3_can
             setting_cmd->hydraulic_onoff = msg->hydraulic_off;
             setting_cmd->power_eco_mode = msg->power_eco_mode;
             setting_cmd->travel_mode = msg->travel_mode;
-            // last_cmd_time = node_->get_clock()->now();
+            last_cmd_time = this->get_clock()->now();
         }
 
-        boost::asio::steady_timer send_timer;
         canary::raw::socket sock;
+        boost::asio::steady_timer send_timer;
         frame recv_f;
-        boost::shared_ptr<excavator_com3::machine_setting_cmd> setting_cmd;
-
-        // ros::NodeHandle nh;
-        rclcpp::Node::SharedPtr node_;
-        rclcpp::Subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>::SharedPtr sub_js_cmd, sub_travel_cmd;
+        std::shared_ptr<excavator_com3::machine_setting_cmd> setting_cmd;
+        rclcpp::Subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>::SharedPtr sub_js_cmd;
         rclcpp::Time last_cmd_time;
-
         std::uint8_t alive_cnt;
     };
 }
