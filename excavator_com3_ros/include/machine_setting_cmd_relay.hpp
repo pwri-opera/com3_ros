@@ -11,13 +11,14 @@
 
 namespace excavator_com3_can
 {
-    class machine_setting_cmd_relay : public excavator_com3_dbc
+    class machine_setting_cmd_relay : public excavator_com3_dbc, public rclcpp::Node
     {
     public:
         machine_setting_cmd_relay(boost::asio::io_context &io, std::string can_port, std::string dbc_path)
             : excavator_com3_dbc(dbc_path),
               send_timer(io, boost::asio::chrono::milliseconds(initial_interval)),
-              sock(io)
+              sock(io),
+              rclcpp::Node("machine_setting_cmd_relay")
         {
             const auto idx = canary::get_interface_index(can_port);
             auto const ep = canary::raw::endpoint{idx};
@@ -30,10 +31,9 @@ namespace excavator_com3_can
             start_receive();
             send_timer.async_wait(boost::bind(&machine_setting_cmd_relay::send_machine_setting_cmd, this));
 
-            node_ = rclcpp::Node::make_shared("machine_seting_cmd_relay");
-            sub_js_cmd = node_->create_subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>("machine_setting", 10, [this](const com3_msgs::msg::ExcavatorCom3MachineSetting::SharedPtr msg)
-                                                                                                 { this->machine_setting_cmd_callback(msg); });
-            rclcpp::spin(node_);
+            sub_js_cmd = this->create_subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>(
+                "machine_setting", 10, [this](const com3_msgs::msg::ExcavatorCom3MachineSetting::SharedPtr msg)
+                { this->machine_setting_cmd_callback(msg); });
         }
 
         ~machine_setting_cmd_relay()
@@ -82,7 +82,7 @@ namespace excavator_com3_can
             setting_cmd->hydraulic_onoff = msg->hydraulic_off;
             setting_cmd->power_eco_mode = msg->power_eco_mode;
             setting_cmd->travel_mode = msg->travel_mode;
-            last_cmd_time = node_->get_clock()->now();
+            // last_cmd_time = node_->get_clock()->now();
         }
 
         boost::asio::steady_timer send_timer;

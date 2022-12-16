@@ -18,7 +18,6 @@
 
 using namespace std::chrono_literals;
 
-// spin()だけlever_cmd_ralayのコンストラクタに存在するのは気持ち悪いため要修正
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
@@ -26,8 +25,12 @@ int main(int argc, char **argv)
     // TODO: com3_can_port, dbc_path の ros parameter 化
     std::string com3_can_port = "vcan0";
     std::string dbc_path = "/usr/local/share/dbc/excavator_com3.dbc";
-    excavator_com3_can::machine_setting_cmd_relay com3_can(ioc, com3_can_port, dbc_path);
+
+    auto node_ = std::make_shared<excavator_com3_can::machine_setting_cmd_relay>(ioc, com3_can_port, dbc_path);
+        
     boost::thread t(boost::bind(&boost::asio::io_context::run, &ioc));
+
+    rclcpp::spin(node_);
 
     rclcpp::shutdown();
     return 0;
