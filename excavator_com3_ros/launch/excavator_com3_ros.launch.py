@@ -29,17 +29,10 @@ def generate_launch_description():
     )
 
     # Node
-    lever_cmd_relay = Node(
+    excavator_com3_relay = Node(
         package="excavator_com3_ros",
-        name="lever_cmd_relay",
-        executable="lever_cmd_relay",
-        parameters=[{"can_port": can_port, "dbc_path": dbc_path}],
-        output="screen",
-    )
-    machine_setting_cmd_relay = Node(
-        package="excavator_com3_ros",
-        name="machine_setting_cmd_relay",
-        executable="machine_setting_cmd_relay",
+        name="excavator_com3_relay",
+        executable="excavator_com3_relay",
         parameters=[{"can_port": can_port, "dbc_path": dbc_path}],
         output="screen",
     )
@@ -49,7 +42,6 @@ def generate_launch_description():
     ld.add_action(declare_can_port)
     ld.add_action(declare_dbc_path)
     # To run Node
-    ld.add_action(lever_cmd_relay)
-    ld.add_action(machine_setting_cmd_relay)
+    ld.add_action(excavator_com3_relay)
 
     return ld

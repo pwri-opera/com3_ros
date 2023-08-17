@@ -14,7 +14,7 @@
 #include <boost/make_shared.hpp>
 
 #include <com3/excavator_com3_dbc.hpp>
-#include "lever_cmd_relay.hpp"
+#include "excavator_com3_relay.hpp"
 
 using namespace std::chrono_literals;
 
@@ -35,7 +35,7 @@ int main(int argc, char **argv)
     dbc_path = param_node->get_parameter("dbc_path").get_parameter_value().get<std::string>();
   }
 
-  auto node_ = std::make_shared<excavator_com3_can::lever_cmd_relay>(ioc, com3_can_port, dbc_path);
+  auto node_ = std::make_shared<excavator_com3_can::gateway>(ioc, com3_can_port, dbc_path);
 
   boost::thread t(boost::bind(&boost::asio::io_context::run, &ioc));
 
