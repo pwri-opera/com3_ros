@@ -18,6 +18,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ExcavatorCom3Lever1.msg"
   "msg/ExcavatorCom3Lever2.msg"
   "msg/ExcavatorCom3MachineSetting.msg"
+  "msg/JointCmd.msg"
   DEPENDENCIES std_msgs # Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
 )
 
