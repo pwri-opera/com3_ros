@@ -6,8 +6,10 @@
 #include <boost/bind/bind.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/twist.hpp>
+#include <std_msgs/msg/int32_multi_array.hpp>
 #include <com3_msgs/msg/joint_cmd.hpp>
 #include <com3_msgs/msg/excavator_com3_machine_setting.hpp>
+#include <com3_msgs/msg/excavator_com3_machine_state.hpp>
 #include <com3/excavator_com3_dbc.hpp>
 
 #define initial_interval 100 //[ms]
@@ -42,7 +44,8 @@ namespace excavator_com3_can
       tracks_vel_cmd = boost::make_shared<excavator_com3::Velocity_Cmd_2>();
       setting_cmd = boost::make_shared<excavator_com3::Machine_Setting_Cmd>();
 
-      alive_cnt = 0;
+      publisher_variable_init();
+
       start_receive();
       send_pilot_cmd_1_timer.async_wait(boost::bind(&gateway::send_pilot_cmd_1, this));
       send_pilot_cmd_2_timer.async_wait(boost::bind(&gateway::send_pilot_cmd_2, this));
@@ -62,9 +65,12 @@ namespace excavator_com3_can
       sub_machine_setting_cmd_ = this->create_subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>("machine_setting_cmd", 10,
                                                                                                         [this](const com3_msgs::msg::ExcavatorCom3MachineSetting::SharedPtr msg)
                                                                                                         { this->setting_cmd_callback(msg); });
-      // sub_attachment_cmd_ = this->create_subscription<com3_msgs::msg::ExcavatorCom3Lever2>("lever2", 10,
-      //                                                                                   [this](const com3_msgs::msg::ExcavatorCom3Lever2::SharedPtr msg)
-      //                                                                                   { this->lever2_cmd_callback(msg); });
+      // sub_attachment_cmd_ = this->create_subscription<com3_msgs::msg::ExcavatorCom3Attachment>("lever2", 10,
+      //                                                                                   [this](const com3_msgs::msg::ExcavatorCom3Attachment::SharedPtr msg)
+      //                                                                                   { this->attachment_cmd_callback(msg); });
+      pub_machine_state = this->create_publisher<com3_msgs::msg::ExcavatorCom3MachineState>("machine_state",10);
+      pub_hydraulic_flow_1 = this->create_publisher<std_msgs::msg::Int32MultiArray>("hydraulics_flow_front", 10);
+      pub_hydraulic_flow_2 = this->create_publisher<std_msgs::msg::Int32MultiArray>("hydraulics_flow_tracks", 10);
 
       last_front_cmd_time = last_tracks_cmd_time = last_twist_cmd_time = last_machine_setting_cmd_time = this->get_clock()->now();
     };
@@ -181,11 +187,88 @@ namespace excavator_com3_can
 
     void start_receive()
     {
+      // rttr::type t = rttr::type::get<excavator_com3::Hydraulic_Flow_Rate_2>();
+      // for (auto &prop : t.get_properties())
+      //   std::cout << "name: " << prop.get_name();
+      // std::cout << std::endl;
+
       sock.async_receive(canary::net::buffer(&recv_f, sizeof(recv_f)), boost::bind(&gateway::handle_receive, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 
       if (recv_f.header.payload_length())
       {
         excavator_com3_dbc::decode(recv_f);
+        switch (recv_f.header.id() | 0x80000000)
+        {
+        case excavator_com3::Machine_State::id:
+          get_can_bus_msg(m_state);
+          machine_state.lock_cmd_state = m_state.lock_cmd_state;
+          machine_state.pilot_shutoff_valve_state = m_state.pilot_shutoff_valve_state;
+          machine_state.system_error = m_state.system_error;
+          machine_state.can_error_pl = m_state.can_error_pl;
+          machine_state.can_error_ict = m_state.can_error_ict;
+          machine_state.can_error_body = m_state.can_error_body;
+          machine_state.lock_receiver_error = m_state.lock_receiver_error;
+          machine_state.emergency_stop_receiver_error = m_state.emergency_stop_receiver_error;
+          machine_state.switch_error = m_state.switch_error;
+          machine_state.control_state = m_state.control_state;
+          machine_state.hydraulic_oil_temp = machine_state.hydraulic_oil_temp;
+          machine_state.engine_state = machine_state.engine_state;
+          machine_state.alive_counter = m_state.alive_counter;
+          pub_machine_state->publish(machine_state);
+          break;
+        case excavator_com3::Hydraulic_Flow_Rate_2::id:
+          // std_msgs::msg::Int32MultiArray a;
+          get_can_bus_msg(h_flow_2);
+          hydraulic_flow_2.data[0] = h_flow_2.right_track_motor_a_flow_rate;
+          hydraulic_flow_2.data[1] = h_flow_2.right_track_motor_b_flow_rate;
+          hydraulic_flow_2.data[2] = h_flow_2.left_track_motor_a_flow_rate;
+          hydraulic_flow_2.data[3] = h_flow_2.left_track_motor_b_flow_rate;
+          pub_hydraulic_flow_2->publish(hydraulic_flow_2);
+          break;
+        case excavator_com3::Hydraulic_Flow_Rate_1::id:
+          get_can_bus_msg(h_flow_1);
+          hydraulic_flow_1.data[0] = h_flow_1.boom_cylinder_bottom_flow_rate;
+          hydraulic_flow_1.data[1] = h_flow_1.boom_cylinder_rod_flow_rate;
+          hydraulic_flow_1.data[2] = h_flow_1.arm_cylinder_bottom_flow_rate;
+          hydraulic_flow_1.data[3] = h_flow_1.arm_cylinder_rod_flow_rate;
+          hydraulic_flow_1.data[4] = h_flow_1.bucket_cylinder_bottom_flow_rate;
+          hydraulic_flow_1.data[5] = h_flow_1.bucket_cylinder_rod_flow_rate;
+          hydraulic_flow_1.data[6] = h_flow_1.swing_motor_a_flow_rate;
+          hydraulic_flow_1.data[7] = h_flow_1.swing_motor_b_flow_rate;
+          pub_hydraulic_flow_1->publish(hydraulic_flow_1);
+          break;
+        case excavator_com3::Pilot_Pressure_2::id:
+          break;
+        case excavator_com3::Pilot_Pressure_1::id:
+          break;
+        case excavator_com3::Pressure_2::id:
+          break;
+        case excavator_com3::Pressure_1::id:
+          break;
+        case excavator_com3::Vehicle_Azimuth::id:
+          break;
+        case excavator_com3::Swing_Center_Position_3::id:
+          break;
+        case excavator_com3::Swing_Center_Position_2::id:
+          break;
+        case excavator_com3::Swing_Center_Position_1::id:
+          break;
+        case excavator_com3::Front_Pin_Position_3::id:
+          break;
+        case excavator_com3::Front_Pin_Position_2::id:
+          break;
+        case excavator_com3::Front_Pin_Position_1::id:
+          break;
+        case excavator_com3::Roll_Pitch_Angle::id:
+          break;
+        case excavator_com3::Front_Angular_Velocity::id:
+          break;
+        case excavator_com3::Front_Angle::id:
+          break;
+        default:
+
+          break;
+        }
       }
     }
 
@@ -295,6 +378,28 @@ namespace excavator_com3_can
       }
     }
 
+    void publisher_variable_init()
+    {
+      hydraulic_flow_1.data.resize(8);
+      hydraulic_flow_1.layout.dim.resize(8);
+      hydraulic_flow_1.layout.dim[0].label = "boom_cylinder_bottom_flow_rate";
+      hydraulic_flow_1.layout.dim[1].label = "boom_cylinder_rod_flow_rate";
+      hydraulic_flow_1.layout.dim[2].label = "arm_cylinder_bottom_flow_rate";
+      hydraulic_flow_1.layout.dim[3].label = "arm_cylinder_rod_flow_rate";
+      hydraulic_flow_1.layout.dim[4].label = "bucket_cylinder_bottom_flow_rate";
+      hydraulic_flow_1.layout.dim[5].label = "bucket_cylinder_rod_flow_rate";
+      hydraulic_flow_1.layout.dim[6].label = "swing_motor_a_flow_rate";
+      hydraulic_flow_1.layout.dim[7].label = "swing_motor_b_flow_rate";
+
+      hydraulic_flow_2.data.resize(4);
+      hydraulic_flow_2.layout.dim.resize(4);
+      hydraulic_flow_2.layout.dim[0].label = "right_track_motor_a_flow_rate";
+      hydraulic_flow_2.layout.dim[1].label = "right_track_motor_b_flow_rate";
+      hydraulic_flow_2.layout.dim[2].label = "left_track_motor_a_flow_rate";
+      hydraulic_flow_2.layout.dim[3].label = "left_track_motor_b_flow_rate";
+      hydraulic_flow_2.data.resize(4);
+    }
+
     canary::raw::socket sock;
     boost::asio::steady_timer send_pilot_cmd_1_timer, send_pilot_cmd_2_timer, send_front_vel_cmd_timer, send_tracks_vel_cmd_timer, send_machine_setting_cmd_timer;
     frame recv_f;
@@ -303,29 +408,23 @@ namespace excavator_com3_can
     boost::shared_ptr<excavator_com3::Pilot_Pressure_Cmd_2> pilot_cmd_2;
     boost::shared_ptr<excavator_com3::Velocity_Cmd_2> tracks_vel_cmd;
     boost::shared_ptr<excavator_com3::Machine_Setting_Cmd> setting_cmd;
+    excavator_com3::Machine_State m_state;
+    excavator_com3::Hydraulic_Flow_Rate_1 h_flow_1;
+    excavator_com3::Hydraulic_Flow_Rate_2 h_flow_2;
 
     rclcpp::Subscription<com3_msgs::msg::JointCmd>::SharedPtr sub_front_cmd_;
     rclcpp::Subscription<com3_msgs::msg::JointCmd>::SharedPtr sub_tracks_cmd_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_twist_cmd_;
     rclcpp::Subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>::SharedPtr sub_machine_setting_cmd_;
 
+
+    rclcpp::Publisher<com3_msgs::msg::ExcavatorCom3MachineState>::SharedPtr pub_machine_state;
+    com3_msgs::msg::ExcavatorCom3MachineState machine_state;
+    rclcpp::Publisher<std_msgs::msg::Int32MultiArray>::SharedPtr pub_hydraulic_flow_1;
+    std_msgs::msg::Int32MultiArray hydraulic_flow_1;
+    rclcpp::Publisher<std_msgs::msg::Int32MultiArray>::SharedPtr pub_hydraulic_flow_2;
+    std_msgs::msg::Int32MultiArray hydraulic_flow_2;
+
     rclcpp::Time last_front_cmd_time, last_tracks_cmd_time, last_twist_cmd_time, last_machine_setting_cmd_time;
-
-    std::uint8_t alive_cnt;
-
-    // enum front_control_mode_type
-    // {
-    //   None = 0,
-    //   Effort = 1,
-    //   Velocity = 2,
-    //   Position = 3
-    // };
-    // enum tracks_control_mode_type
-    // {
-    //   None = 0,
-    //   Effort = 1,
-    //   VelocityTracks = 2,
-    //   VelocityCenter = 3
-    // };
   };
 }
