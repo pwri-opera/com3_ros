@@ -5,13 +5,18 @@
 #include <boost/make_shared.hpp>
 #include <boost/bind/bind.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <std_msgs/msg/int32_multi_array.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <com3_msgs/msg/joint_cmd.hpp>
 #include <com3_msgs/msg/excavator_com3_machine_setting.hpp>
 #include <com3_msgs/msg/excavator_com3_machine_state.hpp>
 #include <com3/excavator_com3_dbc.hpp>
+
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #define initial_interval 100 //[ms]
 #define cmd_timeout 500      //[ms]
@@ -73,6 +78,11 @@ namespace excavator_com3_can
       pub_hydraulic_flow_1 = this->create_publisher<std_msgs::msg::Int32MultiArray>("hydraulics_flow_front", 10);
       pub_hydraulic_flow_2 = this->create_publisher<std_msgs::msg::Int32MultiArray>("hydraulics_flow_tracks", 10);
       pub_joint_state = this->create_publisher<sensor_msgs::msg::JointState>("joint_state", 10);
+      pub_pose = this->create_publisher<geometry_msgs::msg::PoseStamped>("pose", 10);
+      pub_pi_pressure_1 = this->create_publisher<std_msgs::msg::Float64MultiArray>("pi_pressure_1", 10);
+      pub_pi_pressure_2 = this->create_publisher<std_msgs::msg::Float64MultiArray>("pi_pressure_1", 10);
+      pub_main_pressure_1 = this->create_publisher<std_msgs::msg::Float64MultiArray>("main_pressure_1", 10);
+      pub_main_pressure_2 = this->create_publisher<std_msgs::msg::Float64MultiArray>("main_pressure_1", 10);
 
       last_front_cmd_time = last_tracks_cmd_time = last_twist_cmd_time = last_machine_setting_cmd_time = this->get_clock()->now();
     };
@@ -202,59 +212,113 @@ namespace excavator_com3_can
         switch (recv_f.header.id() | 0x80000000)
         {
         case excavator_com3::Machine_State::id:
-          get_can_bus_msg(m_state);
-          machine_state.lock_cmd_state = m_state.lock_cmd_state;
-          machine_state.pilot_shutoff_valve_state = m_state.pilot_shutoff_valve_state;
-          machine_state.system_error = m_state.system_error;
-          machine_state.can_error_pl = m_state.can_error_pl;
-          machine_state.can_error_ict = m_state.can_error_ict;
-          machine_state.can_error_body = m_state.can_error_body;
-          machine_state.lock_receiver_error = m_state.lock_receiver_error;
-          machine_state.emergency_stop_receiver_error = m_state.emergency_stop_receiver_error;
-          machine_state.switch_error = m_state.switch_error;
-          machine_state.control_state = m_state.control_state;
+          get_can_bus_msg(com3_machine_state);
+          machine_state.lock_cmd_state = com3_machine_state.lock_cmd_state;
+          machine_state.pilot_shutoff_valve_state = com3_machine_state.pilot_shutoff_valve_state;
+          machine_state.system_error = com3_machine_state.system_error;
+          machine_state.can_error_pl = com3_machine_state.can_error_pl;
+          machine_state.can_error_ict = com3_machine_state.can_error_ict;
+          machine_state.can_error_body = com3_machine_state.can_error_body;
+          machine_state.lock_receiver_error = com3_machine_state.lock_receiver_error;
+          machine_state.emergency_stop_receiver_error = com3_machine_state.emergency_stop_receiver_error;
+          machine_state.switch_error = com3_machine_state.switch_error;
+          machine_state.control_state = com3_machine_state.control_state;
           machine_state.hydraulic_oil_temp = machine_state.hydraulic_oil_temp;
           machine_state.engine_state = machine_state.engine_state;
-          machine_state.alive_counter = m_state.alive_counter;
+          machine_state.alive_counter = com3_machine_state.alive_counter;
           pub_machine_state->publish(machine_state);
           break;
         case excavator_com3::Hydraulic_Flow_Rate_2::id:
           // std_msgs::msg::Int32MultiArray a;
-          get_can_bus_msg(h_flow_2);
-          hydraulic_flow_2.data[0] = h_flow_2.right_track_motor_a_flow_rate;
-          hydraulic_flow_2.data[1] = h_flow_2.right_track_motor_b_flow_rate;
-          hydraulic_flow_2.data[2] = h_flow_2.left_track_motor_a_flow_rate;
-          hydraulic_flow_2.data[3] = h_flow_2.left_track_motor_b_flow_rate;
+          get_can_bus_msg(com3_h_flow_2);
+          hydraulic_flow_2.data[0] = com3_h_flow_2.right_track_motor_a_flow_rate;
+          hydraulic_flow_2.data[1] = com3_h_flow_2.right_track_motor_b_flow_rate;
+          hydraulic_flow_2.data[2] = com3_h_flow_2.left_track_motor_a_flow_rate;
+          hydraulic_flow_2.data[3] = com3_h_flow_2.left_track_motor_b_flow_rate;
           pub_hydraulic_flow_2->publish(hydraulic_flow_2);
           break;
         case excavator_com3::Hydraulic_Flow_Rate_1::id:
-          get_can_bus_msg(h_flow_1);
-          hydraulic_flow_1.data[0] = h_flow_1.boom_cylinder_bottom_flow_rate;
-          hydraulic_flow_1.data[1] = h_flow_1.boom_cylinder_rod_flow_rate;
-          hydraulic_flow_1.data[2] = h_flow_1.arm_cylinder_bottom_flow_rate;
-          hydraulic_flow_1.data[3] = h_flow_1.arm_cylinder_rod_flow_rate;
-          hydraulic_flow_1.data[4] = h_flow_1.bucket_cylinder_bottom_flow_rate;
-          hydraulic_flow_1.data[5] = h_flow_1.bucket_cylinder_rod_flow_rate;
-          hydraulic_flow_1.data[6] = h_flow_1.swing_motor_a_flow_rate;
-          hydraulic_flow_1.data[7] = h_flow_1.swing_motor_b_flow_rate;
+          get_can_bus_msg(com3_h_flow_1);
+          hydraulic_flow_1.data[0] = com3_h_flow_1.boom_cylinder_bottom_flow_rate;
+          hydraulic_flow_1.data[1] = com3_h_flow_1.boom_cylinder_rod_flow_rate;
+          hydraulic_flow_1.data[2] = com3_h_flow_1.arm_cylinder_bottom_flow_rate;
+          hydraulic_flow_1.data[3] = com3_h_flow_1.arm_cylinder_rod_flow_rate;
+          hydraulic_flow_1.data[4] = com3_h_flow_1.bucket_cylinder_bottom_flow_rate;
+          hydraulic_flow_1.data[5] = com3_h_flow_1.bucket_cylinder_rod_flow_rate;
+          hydraulic_flow_1.data[6] = com3_h_flow_1.swing_motor_a_flow_rate;
+          hydraulic_flow_1.data[7] = com3_h_flow_1.swing_motor_b_flow_rate;
           pub_hydraulic_flow_1->publish(hydraulic_flow_1);
           break;
         case excavator_com3::Pilot_Pressure_2::id:
+          get_can_bus_msg(com3_pi_pressure_2);
+          pi_pressure_2.data[0] = com3_pi_pressure_2.right_track_forward_pilot_prs;
+          pi_pressure_2.data[1] = com3_pi_pressure_2.right_track_backward_pilot_prs;
+          pi_pressure_2.data[2] = com3_pi_pressure_2.left_track_forward_pilot_prs;
+          pi_pressure_2.data[3] = com3_pi_pressure_2.left_track_backward_pilot_prs;
+          pi_pressure_2.data[4] = com3_pi_pressure_2.attachment_a_pilot_pressure;
+          pi_pressure_2.data[5] = com3_pi_pressure_2.attachment_b_pilot_pressure;
+          pi_pressure_2.data[6] = com3_pi_pressure_2.assist_a_pilot_pressure;
+          pi_pressure_2.data[7] = com3_pi_pressure_2.assist_b_pilot_pressure;
+          pub_pi_pressure_2->publish(pi_pressure_2);
           break;
         case excavator_com3::Pilot_Pressure_1::id:
+          get_can_bus_msg(com3_pi_pressure_1);
+          pi_pressure_1.data[0] = com3_pi_pressure_1.boom_up_pilot_pressure;
+          pi_pressure_1.data[1] = com3_pi_pressure_1.boom_up_pilot_pressure;
+          pi_pressure_1.data[2] = com3_pi_pressure_1.arm_crowd_pilot_pressure;
+          pi_pressure_1.data[3] = com3_pi_pressure_1.arm_dump_pilot_pressure;
+          pi_pressure_1.data[4] = com3_pi_pressure_1.bucket_crowd_pilot_pressure;
+          pi_pressure_1.data[5] = com3_pi_pressure_1.bucket_dump_pilot_pressure;
+          pi_pressure_1.data[6] = com3_pi_pressure_1.swing_right_pilot_pressure;
+          pi_pressure_1.data[7] = com3_pi_pressure_1.swing_left_pilot_pressure;
+          pub_pi_pressure_1->publish(pi_pressure_1);
           break;
         case excavator_com3::Pressure_2::id:
+          get_can_bus_msg(com3_main_pressure_2);
+          main_pressure_2.data[0] = com3_main_pressure_2.right_track_motor_a_pressure;
+          main_pressure_2.data[1] = com3_main_pressure_2.right_track_motor_b_pressure;
+          main_pressure_2.data[2] = com3_main_pressure_2.left_track_motor_a_pressure;
+          main_pressure_2.data[3] = com3_main_pressure_2.left_track_motor_b_pressure;
+          main_pressure_2.data[4] = com3_main_pressure_2.attachment_a_pressure;
+          main_pressure_2.data[5] = com3_main_pressure_2.attachment_b_pressure;
+          main_pressure_2.data[6] = com3_main_pressure_2.assist_a_pressure;
+          main_pressure_2.data[7] = com3_main_pressure_2.assit_b_pressure;
+          pub_main_pressure_2->publish(main_pressure_2);
           break;
         case excavator_com3::Pressure_1::id:
+          get_can_bus_msg(com3_main_pressure_1);
+          main_pressure_1.data[0] = com3_main_pressure_1.boom_cylinder_bottom_pressure;
+          main_pressure_1.data[1] = com3_main_pressure_1.boom_cylinder_rod_pressure;
+          main_pressure_1.data[2] = com3_main_pressure_1.arm_cylinder_bottom_pressure;
+          main_pressure_1.data[3] = com3_main_pressure_1.arm_cylinder_rod_pressure;
+          main_pressure_1.data[4] = com3_main_pressure_1.bucket_cylinder_bottom_pressure;
+          main_pressure_1.data[5] = com3_main_pressure_1.bucket_cylinder_rod_pressure;
+          main_pressure_1.data[6] = com3_main_pressure_1.swing_motor_a_pressure;
+          main_pressure_1.data[7] = com3_main_pressure_1.swing_motor_b_pressure;
+          pub_main_pressure_1->publish(main_pressure_1);
           break;
         case excavator_com3::Vehicle_Azimuth::id:
           // heading direction
+          is_pose_set = is_pose_set | 0x02;
+          get_can_bus_msg(com3_vehicle_azimuth);
+          quat_tf.setRPY(com3_roll_pitch.roll_angle, com3_roll_pitch.pitch_angle, com3_vehicle_azimuth.track_body_azimuth * -1);
+          pose.pose.orientation = tf2::toMsg(quat_tf);
+          // pub_pose->publish(pose);
           break;
         case excavator_com3::Swing_Center_Position_3::id:
+          is_pose_set = is_pose_set | 0x10;
+          get_can_bus_msg(com3_swing_center_pos_z);
+          pose.pose.position.z = com3_swing_center_pos_z.swing_center_position_z;
           break;
         case excavator_com3::Swing_Center_Position_2::id:
+          is_pose_set = is_pose_set | 0x08;
+          get_can_bus_msg(com3_swing_center_pos_y);
+          pose.pose.position.y = com3_swing_center_pos_y.swing_center_position_y;
           break;
         case excavator_com3::Swing_Center_Position_1::id:
+          is_pose_set = is_pose_set | 0x04;
+          get_can_bus_msg(com3_swing_center_pos_x);
+          pose.pose.position.x = com3_swing_center_pos_x.swing_center_position_x;
           break;
         case excavator_com3::Front_Pin_Position_3::id:
           break;
@@ -264,23 +328,42 @@ namespace excavator_com3_can
           break;
         case excavator_com3::Roll_Pitch_Angle::id:
           // roll and pitch angle of vehicle
+          // 車体(上部旋回体)のroll, pitch
+          is_pose_set = is_pose_set | 0x01;
+          get_can_bus_msg(com3_roll_pitch);
           break;
         case excavator_com3::Front_Angular_Velocity::id:
-          joint_state.velocity[0] = front_ang_vel.swing_relative_angular_velocity;
-          joint_state.velocity[1] = front_ang_vel.boom_relative_angular_velocity;
-          joint_state.velocity[2] = front_ang_vel.arm_relative_angular_velocity;
-          joint_state.velocity[3] = front_ang_vel.bucket_relative_angular_velocity;
+          get_can_bus_msg(com3_front_ang_vel);
+          joint_state.velocity[0] = com3_front_ang_vel.swing_relative_angular_velocity;
+          joint_state.velocity[1] = com3_front_ang_vel.boom_relative_angular_velocity;
+          joint_state.velocity[2] = com3_front_ang_vel.arm_relative_angular_velocity;
+          joint_state.velocity[3] = com3_front_ang_vel.bucket_relative_angular_velocity;
+          is_js_set = is_js_set | 0x1;
           break;
         case excavator_com3::Front_Angle::id:
-          joint_state.position[0] = front_ang.swing_relative_angle;
-          joint_state.position[1] = front_ang.boom_relative_angle;
-          joint_state.position[2] = front_ang.arm_relative_angle;
-          joint_state.position[3] = front_ang.bucket_relative_angle;
-          joint_state.header.stamp = this->get_clock()->now();
-          pub_joint_state->publish(joint_state);
+          get_can_bus_msg(com3_front_ang);
+          joint_state.position[0] = com3_front_ang.swing_relative_angle;
+          joint_state.position[1] = com3_front_ang.boom_relative_angle;
+          joint_state.position[2] = com3_front_ang.arm_relative_angle;
+          joint_state.position[3] = com3_front_ang.bucket_relative_angle;
+          is_js_set = is_js_set | 0x2;
           break;
         default:
           break;
+        }
+        // pose publich
+        if (is_pose_set & 0x1F)
+        {
+          is_pose_set = 0;
+          pose.header.stamp = this->get_clock()->now();
+          pub_pose->publish(pose);
+        }
+        // front velocity angle & angle publish
+        if (is_js_set & 0x3)
+        {
+          is_js_set = 0;
+          joint_state.header.stamp = this->get_clock()->now();
+          pub_joint_state->publish(joint_state);
         }
       }
     }
@@ -421,6 +504,52 @@ namespace excavator_com3_can
       joint_state.position.resize(4);
       joint_state.velocity.resize(4);
       joint_state.effort.resize(4);
+
+      pose.header.frame_id = "base_link";
+
+      pi_pressure_1.data.resize(8);
+      pi_pressure_1.layout.dim.resize(8);
+      pi_pressure_1.layout.dim[0].label = "boom_up_pilot_pressure";
+      pi_pressure_1.layout.dim[1].label = "boom_down_pilot_pressure";
+      pi_pressure_1.layout.dim[2].label = "arm_crowd_pilot_pressure";
+      pi_pressure_1.layout.dim[3].label = "arm_dump_pilot_pressure";
+      pi_pressure_1.layout.dim[4].label = "bucket_crowd_pilot_pressure";
+      pi_pressure_1.layout.dim[5].label = "bucket_dump_pilot_pressure";
+      pi_pressure_1.layout.dim[6].label = "swing_right_pilot_pressure";
+      pi_pressure_1.layout.dim[7].label = "swing_left_pilot_pressure";
+
+      pi_pressure_2.data.resize(8);
+      pi_pressure_2.layout.dim.resize(8);
+      pi_pressure_2.layout.dim[0].label = "right_track_forward_pilot_prs";
+      pi_pressure_2.layout.dim[1].label = "right_track_backward_pilot_prs";
+      pi_pressure_2.layout.dim[2].label = "left_track_forward_pilot_prs";
+      pi_pressure_2.layout.dim[3].label = "left_track_backward_pilot_prs";
+      pi_pressure_2.layout.dim[4].label = "attachment_a_pilot_pressure";
+      pi_pressure_2.layout.dim[5].label = "attachment_b_pilot_pressure";
+      pi_pressure_2.layout.dim[6].label = "assist_a_pilot_pressure";
+      pi_pressure_2.layout.dim[7].label = "assist_b_pilot_pressure";
+
+      main_pressure_1.data.resize(8);
+      main_pressure_1.layout.dim.resize(8);
+      main_pressure_1.layout.dim[0].label = "boom_cylinder_bottom_pressure";
+      main_pressure_1.layout.dim[1].label = "boom_cylinder_rod_pressure";
+      main_pressure_1.layout.dim[2].label = "arm_cylinder_bottom_pressure";
+      main_pressure_1.layout.dim[3].label = "arm_cylinder_rod_pressure";
+      main_pressure_1.layout.dim[4].label = "bucket_cylinder_bottom_pressure";
+      main_pressure_1.layout.dim[5].label = "bucket_cylinder_rod_pressure";
+      main_pressure_1.layout.dim[6].label = "swing_motor_a_pressure";
+      main_pressure_1.layout.dim[7].label = "swing_motor_b_pressure";
+
+      main_pressure_2.data.resize(8);
+      main_pressure_2.layout.dim.resize(8);
+      main_pressure_2.layout.dim[0].label = "right_track_motor_a_pressure";
+      main_pressure_2.layout.dim[1].label = "right_track_motor_b_pressure";
+      main_pressure_2.layout.dim[2].label = "left_track_motor_a_pressure";
+      main_pressure_2.layout.dim[3].label = "left_track_motor_b_pressure";
+      main_pressure_2.layout.dim[4].label = "attachment_a_pressure";
+      main_pressure_2.layout.dim[5].label = "attachment_b_pressure";
+      main_pressure_2.layout.dim[6].label = "assist_a_pressure";
+      main_pressure_2.layout.dim[7].label = "assit_b_pressure";
     }
 
     canary::raw::socket sock;
@@ -431,25 +560,44 @@ namespace excavator_com3_can
     boost::shared_ptr<excavator_com3::Pilot_Pressure_Cmd_2> pilot_cmd_2;
     boost::shared_ptr<excavator_com3::Velocity_Cmd_2> tracks_vel_cmd;
     boost::shared_ptr<excavator_com3::Machine_Setting_Cmd> setting_cmd;
-    excavator_com3::Machine_State m_state;
-    excavator_com3::Hydraulic_Flow_Rate_1 h_flow_1;
-    excavator_com3::Hydraulic_Flow_Rate_2 h_flow_2;
-    excavator_com3::Front_Angle front_ang;
-    excavator_com3::Front_Angular_Velocity front_ang_vel;
+
+    excavator_com3::Front_Angle com3_front_ang;
+    excavator_com3::Front_Angular_Velocity com3_front_ang_vel;
+    excavator_com3::Roll_Pitch_Angle com3_roll_pitch;
+    excavator_com3::Swing_Center_Position_1 com3_swing_center_pos_x;
+    excavator_com3::Swing_Center_Position_2 com3_swing_center_pos_y;
+    excavator_com3::Swing_Center_Position_3 com3_swing_center_pos_z;
+    excavator_com3::Vehicle_Azimuth com3_vehicle_azimuth;
+    excavator_com3::Pressure_1 com3_main_pressure_1;
+    excavator_com3::Pressure_2 com3_main_pressure_2;
+    excavator_com3::Pilot_Pressure_1 com3_pi_pressure_1;
+    excavator_com3::Pilot_Pressure_2 com3_pi_pressure_2;
+    excavator_com3::Hydraulic_Flow_Rate_1 com3_h_flow_1;
+    excavator_com3::Hydraulic_Flow_Rate_2 com3_h_flow_2;
+    excavator_com3::Machine_State com3_machine_state;
 
     rclcpp::Subscription<com3_msgs::msg::JointCmd>::SharedPtr sub_front_cmd_;
     rclcpp::Subscription<com3_msgs::msg::JointCmd>::SharedPtr sub_tracks_cmd_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_twist_cmd_;
     rclcpp::Subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>::SharedPtr sub_machine_setting_cmd_;
 
-    rclcpp::Publisher<com3_msgs::msg::ExcavatorCom3MachineState>::SharedPtr pub_machine_state;
-    com3_msgs::msg::ExcavatorCom3MachineState machine_state;
-    rclcpp::Publisher<std_msgs::msg::Int32MultiArray>::SharedPtr pub_hydraulic_flow_1;
-    std_msgs::msg::Int32MultiArray hydraulic_flow_1;
-    rclcpp::Publisher<std_msgs::msg::Int32MultiArray>::SharedPtr pub_hydraulic_flow_2;
-    std_msgs::msg::Int32MultiArray hydraulic_flow_2;
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_joint_state;
     sensor_msgs::msg::JointState joint_state;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pub_pose;
+    geometry_msgs::msg::PoseStamped pose;
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr pub_main_pressure_1;
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr pub_main_pressure_2;
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr pub_pi_pressure_1;
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr pub_pi_pressure_2;
+    std_msgs::msg::Float64MultiArray pi_pressure_1, pi_pressure_2, main_pressure_1, main_pressure_2;
+    rclcpp::Publisher<std_msgs::msg::Int32MultiArray>::SharedPtr pub_hydraulic_flow_1;
+    rclcpp::Publisher<std_msgs::msg::Int32MultiArray>::SharedPtr pub_hydraulic_flow_2;
+    std_msgs::msg::Int32MultiArray hydraulic_flow_1, hydraulic_flow_2;
+    rclcpp::Publisher<com3_msgs::msg::ExcavatorCom3MachineState>::SharedPtr pub_machine_state;
+    com3_msgs::msg::ExcavatorCom3MachineState machine_state;
+    tf2::Quaternion quat_tf;
+
+    uint8_t is_pose_set, is_js_set;
 
     rclcpp::Time last_front_cmd_time, last_tracks_cmd_time, last_twist_cmd_time, last_machine_setting_cmd_time;
   };

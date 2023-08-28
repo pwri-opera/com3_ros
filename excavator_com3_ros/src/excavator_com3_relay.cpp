@@ -18,7 +18,6 @@
 
 using namespace std::chrono_literals;
 
-// spin()だけlever_cmd_ralayのコンストラクタに存在するのは気持ち悪いため要修正
 int main(int argc, char **argv)
 {
   rclcpp::init(argc, argv);

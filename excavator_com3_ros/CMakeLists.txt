@@ -11,6 +11,8 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -27,6 +29,8 @@ add_executable(excavator_com3_relay src/excavator_com3_relay.cpp)
 ament_target_dependencies(excavator_com3_relay
   rclcpp
   rclpy
+  tf2
+  tf2_geometry_msgs
   com3_msgs
   std_msgs
   geometry_msgs
