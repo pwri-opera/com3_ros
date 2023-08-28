@@ -13,6 +13,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(com3_msgs REQUIRED)
 find_package(canary REQUIRED)
 find_package(Boost 1.70 COMPONENTS system thread timer REQUIRED)
@@ -29,6 +30,7 @@ ament_target_dependencies(excavator_com3_relay
   com3_msgs
   std_msgs
   geometry_msgs
+  sensor_msgs
 )
 target_link_libraries(excavator_com3_relay
   canary::canary

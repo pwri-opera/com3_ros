@@ -7,6 +7,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <std_msgs/msg/int32_multi_array.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 #include <com3_msgs/msg/joint_cmd.hpp>
 #include <com3_msgs/msg/excavator_com3_machine_setting.hpp>
 #include <com3_msgs/msg/excavator_com3_machine_state.hpp>
@@ -68,9 +69,10 @@ namespace excavator_com3_can
       // sub_attachment_cmd_ = this->create_subscription<com3_msgs::msg::ExcavatorCom3Attachment>("lever2", 10,
       //                                                                                   [this](const com3_msgs::msg::ExcavatorCom3Attachment::SharedPtr msg)
       //                                                                                   { this->attachment_cmd_callback(msg); });
-      pub_machine_state = this->create_publisher<com3_msgs::msg::ExcavatorCom3MachineState>("machine_state",10);
+      pub_machine_state = this->create_publisher<com3_msgs::msg::ExcavatorCom3MachineState>("machine_state", 10);
       pub_hydraulic_flow_1 = this->create_publisher<std_msgs::msg::Int32MultiArray>("hydraulics_flow_front", 10);
       pub_hydraulic_flow_2 = this->create_publisher<std_msgs::msg::Int32MultiArray>("hydraulics_flow_tracks", 10);
+      pub_joint_state = this->create_publisher<sensor_msgs::msg::JointState>("joint_state", 10);
 
       last_front_cmd_time = last_tracks_cmd_time = last_twist_cmd_time = last_machine_setting_cmd_time = this->get_clock()->now();
     };
@@ -246,6 +248,7 @@ namespace excavator_com3_can
         case excavator_com3::Pressure_1::id:
           break;
         case excavator_com3::Vehicle_Azimuth::id:
+          // heading direction
           break;
         case excavator_com3::Swing_Center_Position_3::id:
           break;
@@ -260,13 +263,23 @@ namespace excavator_com3_can
         case excavator_com3::Front_Pin_Position_1::id:
           break;
         case excavator_com3::Roll_Pitch_Angle::id:
+          // roll and pitch angle of vehicle
           break;
         case excavator_com3::Front_Angular_Velocity::id:
+          joint_state.velocity[0] = front_ang_vel.swing_relative_angular_velocity;
+          joint_state.velocity[1] = front_ang_vel.boom_relative_angular_velocity;
+          joint_state.velocity[2] = front_ang_vel.arm_relative_angular_velocity;
+          joint_state.velocity[3] = front_ang_vel.bucket_relative_angular_velocity;
           break;
         case excavator_com3::Front_Angle::id:
+          joint_state.position[0] = front_ang.swing_relative_angle;
+          joint_state.position[1] = front_ang.boom_relative_angle;
+          joint_state.position[2] = front_ang.arm_relative_angle;
+          joint_state.position[3] = front_ang.bucket_relative_angle;
+          joint_state.header.stamp = this->get_clock()->now();
+          pub_joint_state->publish(joint_state);
           break;
         default:
-
           break;
         }
       }
@@ -398,6 +411,16 @@ namespace excavator_com3_can
       hydraulic_flow_2.layout.dim[2].label = "left_track_motor_a_flow_rate";
       hydraulic_flow_2.layout.dim[3].label = "left_track_motor_b_flow_rate";
       hydraulic_flow_2.data.resize(4);
+
+      joint_state.header.frame_id = "base_link";
+      joint_state.name.resize(4);
+      joint_state.name[0] = "swing";
+      joint_state.name[1] = "boom";
+      joint_state.name[2] = "arm";
+      joint_state.name[3] = "bucket";
+      joint_state.position.resize(4);
+      joint_state.velocity.resize(4);
+      joint_state.effort.resize(4);
     }
 
     canary::raw::socket sock;
@@ -411,12 +434,13 @@ namespace excavator_com3_can
     excavator_com3::Machine_State m_state;
     excavator_com3::Hydraulic_Flow_Rate_1 h_flow_1;
     excavator_com3::Hydraulic_Flow_Rate_2 h_flow_2;
+    excavator_com3::Front_Angle front_ang;
+    excavator_com3::Front_Angular_Velocity front_ang_vel;
 
     rclcpp::Subscription<com3_msgs::msg::JointCmd>::SharedPtr sub_front_cmd_;
     rclcpp::Subscription<com3_msgs::msg::JointCmd>::SharedPtr sub_tracks_cmd_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_twist_cmd_;
     rclcpp::Subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>::SharedPtr sub_machine_setting_cmd_;
-
 
     rclcpp::Publisher<com3_msgs::msg::ExcavatorCom3MachineState>::SharedPtr pub_machine_state;
     com3_msgs::msg::ExcavatorCom3MachineState machine_state;
@@ -424,6 +448,8 @@ namespace excavator_com3_can
     std_msgs::msg::Int32MultiArray hydraulic_flow_1;
     rclcpp::Publisher<std_msgs::msg::Int32MultiArray>::SharedPtr pub_hydraulic_flow_2;
     std_msgs::msg::Int32MultiArray hydraulic_flow_2;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_joint_state;
+    sensor_msgs::msg::JointState joint_state;
 
     rclcpp::Time last_front_cmd_time, last_tracks_cmd_time, last_twist_cmd_time, last_machine_setting_cmd_time;
   };
