@@ -26,7 +26,7 @@ uint8 yellow_led_mode
 bool horn
 
 # control mode of front joints.
-# 0:Off, 1:position, 2:velocity, 3:effort.
+# 0:Off, 1:effort, 2:velocity
 uint8 front_control_mode
 
 # control mode of tracks.

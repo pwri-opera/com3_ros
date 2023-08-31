@@ -464,13 +464,13 @@ namespace excavator_com3_can
       // ここでは物理量を扱わず、よりハードウェアに近い下位のソフトウェアで係数をかける必要がある。
       if (effort > 0.)
       {
-        out_plus = effort / 100. * 5;
+        out_plus = std::abs(effort / 100. * 5);
         out_minus = 0;
       }
       else
       {
         out_plus = 0;
-        out_minus = effort / 100. * 5;
+        out_minus = std::abs(effort / 100. * 5);
       }
     }
 
