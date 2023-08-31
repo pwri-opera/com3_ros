@@ -456,21 +456,23 @@ namespace excavator_com3_can
 
     void effort2pilot_pressure(double effort, double &out_plus, double &out_minus)
     {
-      if (std::abs(effort) > 100.)
-        effort = 100. * std::signbit(effort);
+      const double max_effort = 1;//=100[%]
+      const double max_phys_value = 5;//[Mpa]
+      if (std::abs(effort) > max_effort)
+        effort = max_effort * std::signbit(effort);
 
       // ZX200では最大パイロット圧は5MPaなので以下の通りeffort[％]をout[MPa]に変換する。
       // 汎用的にこのノードを利用するためには係数を取得してinputに乗算するか、
       // ここでは物理量を扱わず、よりハードウェアに近い下位のソフトウェアで係数をかける必要がある。
       if (effort > 0.)
       {
-        out_plus = std::abs(effort / 100. * 5);
+        out_plus = std::abs(effort / max_effort * max_phys_value);
         out_minus = 0;
       }
       else
       {
         out_plus = 0;
-        out_minus = std::abs(effort / 100. * 5);
+        out_minus = std::abs(effort / max_effort * max_phys_value);
       }
     }
 
