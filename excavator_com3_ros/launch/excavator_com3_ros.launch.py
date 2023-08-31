@@ -14,9 +14,15 @@ from launch_ros.actions import PushRosNamespace
 def generate_launch_description():
 
     # Define arguments for launch files
+    ns = LaunchConfiguration("ns") 
     can_port = LaunchConfiguration("can_port")
     dbc_path = LaunchConfiguration("dbc_path")
 
+    declare_ns = DeclareLaunchArgument(
+        "ns",
+        default_value="zx200",
+        description=""
+    )
     declare_can_port = DeclareLaunchArgument(
         "can_port",
         default_value="vcan0",
@@ -32,6 +38,7 @@ def generate_launch_description():
     excavator_com3_relay = Node(
         package="excavator_com3_ros",
         name="excavator_com3_relay",
+        namespace=ns,
         executable="excavator_com3_relay",
         parameters=[{"can_port": can_port, "dbc_path": dbc_path}],
         output="screen",
@@ -39,6 +46,7 @@ def generate_launch_description():
 
     ld = LaunchDescription()
     # To declare params
+    ld.add_action(declare_ns)
     ld.add_action(declare_can_port)
     ld.add_action(declare_dbc_path)
     # To run Node
