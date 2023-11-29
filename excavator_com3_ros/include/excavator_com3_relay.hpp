@@ -387,22 +387,22 @@ namespace excavator_com3_can
       {
         for (int i = 0; i < (int)msg->joint_name.size(); i++)
         {
-          if (msg->joint_name[i] == "swing")
+          if (msg->joint_name[i] == "swing_joint")
           {
             effort2pilot_pressure(msg->effort[i], pilot_cmd_1->swing_left, pilot_cmd_1->swing_right);
             front_vel_cmd->swing_target_anguler_velocity = msg->velocity[i];
           }
-          else if (msg->joint_name[i] == "boom")
+          else if (msg->joint_name[i] == "boom_joint")
           {
             effort2pilot_pressure(msg->effort[i], pilot_cmd_1->boom_down, pilot_cmd_1->boom_up);
             front_vel_cmd->boom_target_anguler_velocity = msg->velocity[i];
           }
-          else if (msg->joint_name[i] == "arm")
+          else if (msg->joint_name[i] == "arm_joint")
           {
             effort2pilot_pressure(msg->effort[i], pilot_cmd_1->arm_crowd, pilot_cmd_1->arm_dump);
             front_vel_cmd->arm_target_anguler_velocity = msg->velocity[i];
           }
-          else if (msg->joint_name[i] == "bucket")
+          else if (msg->joint_name[i] == "bucket_joint")
           {
             effort2pilot_pressure(msg->effort[i], pilot_cmd_1->bucket_crowd, pilot_cmd_1->bucket_dump);
             front_vel_cmd->bucket_target_anguler_velocity = msg->velocity[i];
@@ -499,10 +499,10 @@ namespace excavator_com3_can
 
       joint_state.header.frame_id = "base_link";
       joint_state.name.resize(4);
-      joint_state.name[0] = "swing";
-      joint_state.name[1] = "boom";
-      joint_state.name[2] = "arm";
-      joint_state.name[3] = "bucket";
+      joint_state.name[0] = "swing_joint";
+      joint_state.name[1] = "boom_joint";
+      joint_state.name[2] = "arm_joint";
+      joint_state.name[3] = "bucket_joint";
       joint_state.position.resize(4);
       joint_state.velocity.resize(4);
       joint_state.effort.resize(4);
