@@ -9,6 +9,7 @@
 #include <geometry_msgs/msg/twist.hpp>
 #include <std_msgs/msg/int32_multi_array.hpp>
 #include <std_msgs/msg/float64_multi_array.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <com3_msgs/msg/joint_cmd.hpp>
 #include <com3_msgs/msg/excavator_com3_machine_setting.hpp>
@@ -44,6 +45,8 @@ namespace excavator_com3_can
       sock.open();
       sock.bind(ep);
 
+      is_emg_stop_enable = false;
+
       pilot_cmd_1 = boost::make_shared<excavator_com3::Pilot_Pressure_Cmd_1>();
       pilot_cmd_2 = boost::make_shared<excavator_com3::Pilot_Pressure_Cmd_2>();
       front_vel_cmd = boost::make_shared<excavator_com3::Velocity_Cmd_1>();
@@ -74,6 +77,10 @@ namespace excavator_com3_can
       // sub_attachment_cmd_ = this->create_subscription<com3_msgs::msg::ExcavatorCom3Attachment>("lever2", 10,
       //                                                                                   [this](const com3_msgs::msg::ExcavatorCom3Attachment::SharedPtr msg)
       //                                                                                   { this->attachment_cmd_callback(msg); });
+      sub_emg_stop_cmd_ = this->create_subscription<std_msgs::msg::Bool>("emg_stop", 10,
+                                                                        [this](const std_msgs::msg::Bool::SharedPtr msg)
+                                                                         { this->emg_stop_cmd_callback(msg); });
+
       pub_machine_state = this->create_publisher<com3_msgs::msg::ExcavatorCom3MachineState>("machine_state", 10);
       pub_hydraulic_flow_1 = this->create_publisher<std_msgs::msg::Int32MultiArray>("hydraulics_flow_front", 10);
       pub_hydraulic_flow_2 = this->create_publisher<std_msgs::msg::Int32MultiArray>("hydraulics_flow_tracks", 10);
@@ -101,7 +108,7 @@ namespace excavator_com3_can
     {
       rclcpp::Duration elapsed_time = this->get_clock()->now() - last_front_cmd_time;
       frame f = {};
-      if (elapsed_time.seconds() * 1000. > cmd_timeout)
+      if (elapsed_time.seconds() * 1000. > cmd_timeout || is_emg_stop_enable)
       {
         pilot_cmd_1->boom_down = 0;
         pilot_cmd_1->boom_up = 0;
@@ -123,7 +130,7 @@ namespace excavator_com3_can
     {
       rclcpp::Duration elapsed_time = this->get_clock()->now() - last_tracks_cmd_time;
       frame f = {};
-      if (elapsed_time.seconds() * 1000. > cmd_timeout)
+      if (elapsed_time.seconds() * 1000. > cmd_timeout || is_emg_stop_enable)
       {
         pilot_cmd_2->left_track_backward = 0;
         pilot_cmd_2->left_track_forward = 0;
@@ -141,7 +148,7 @@ namespace excavator_com3_can
     {
       rclcpp::Duration elapsed_time = this->get_clock()->now() - last_front_cmd_time;
       frame f = {};
-      if (elapsed_time.seconds() * 1000. > cmd_timeout)
+      if (elapsed_time.seconds() * 1000. > cmd_timeout || is_emg_stop_enable)
       {
         front_vel_cmd->boom_target_anguler_velocity = 0;
         front_vel_cmd->arm_target_anguler_velocity = 0;
@@ -159,13 +166,13 @@ namespace excavator_com3_can
     {
       frame f = {};
       rclcpp::Duration elapsed_time = this->get_clock()->now() - last_twist_cmd_time;
-      if (elapsed_time.seconds() * 1000. > cmd_timeout)
+      if (elapsed_time.seconds() * 1000. > cmd_timeout || is_emg_stop_enable)
       {
         tracks_vel_cmd->target_travel_center_velocity = 0;
         tracks_vel_cmd->target_travel_yaw_rate = 0;
       }
       elapsed_time = this->get_clock()->now() - last_tracks_cmd_time;
-      if (elapsed_time.seconds() * 1000. > cmd_timeout)
+      if (elapsed_time.seconds() * 1000. > cmd_timeout || is_emg_stop_enable)
       {
         tracks_vel_cmd->target_travel_center_velocity = 0;
         tracks_vel_cmd->target_travel_yaw_rate = 0;
@@ -454,6 +461,11 @@ namespace excavator_com3_can
       setting_cmd->travel_signal_switch_command = msg->tracks_control_mode;
     }
 
+    void emg_stop_cmd_callback(const std_msgs::msg::Bool::SharedPtr &msg)
+    {
+      is_emg_stop_enable = msg->data;
+    }
+
     void effort2pilot_pressure(double effort, double &out_plus, double &out_minus)
     {
       const double max_effort = 1;//=100[%]
@@ -582,6 +594,8 @@ namespace excavator_com3_can
     rclcpp::Subscription<com3_msgs::msg::JointCmd>::SharedPtr sub_tracks_cmd_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr sub_twist_cmd_;
     rclcpp::Subscription<com3_msgs::msg::ExcavatorCom3MachineSetting>::SharedPtr sub_machine_setting_cmd_;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr sub_emg_stop_cmd_;
+    bool is_emg_stop_enable;
 
     rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_joint_state;
     sensor_msgs::msg::JointState joint_state;
