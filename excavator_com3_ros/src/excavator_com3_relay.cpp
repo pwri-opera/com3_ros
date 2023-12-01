@@ -24,17 +24,21 @@ int main(int argc, char **argv)
   canary::net::io_context ioc;
   std::string com3_can_port;
   std::string dbc_path;
+  std::vector<double> dead_zone;
+
   // created a node that gets parameters outside machine_setting_cmd_relay class
   {
     auto param_node = rclcpp::Node::make_shared("get_parameters");
     param_node->declare_parameter("can_port", "can");
     param_node->declare_parameter("dbc_path", "excavator_com3.dbc");
+    param_node->declare_parameter("dead_zone", std::vector<double>(0.0));
 
     com3_can_port = param_node->get_parameter("can_port").get_parameter_value().get<std::string>();
     dbc_path = param_node->get_parameter("dbc_path").get_parameter_value().get<std::string>();
+    dead_zone = param_node->get_parameter("dead_zone").get_parameter_value().get<std::vector<double>>();
   }
 
-  auto node_ = std::make_shared<excavator_com3_can::gateway>(ioc, com3_can_port, dbc_path);
+  auto node_ = std::make_shared<excavator_com3_can::gateway>(ioc, com3_can_port, dbc_path, dead_zone);
 
   boost::thread t(boost::bind(&boost::asio::io_context::run, &ioc));
 

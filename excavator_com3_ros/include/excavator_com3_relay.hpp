@@ -27,7 +27,7 @@ namespace excavator_com3_can
   class gateway : public excavator_com3_dbc, public rclcpp::Node
   {
   public:
-    gateway(boost::asio::io_context &io, std::string can_port, std::string dbc_path)
+    gateway(boost::asio::io_context &io, std::string can_port, std::string dbc_path, std::vector<double> dead_zone_value)
         : excavator_com3_dbc(dbc_path),
           rclcpp::Node("gateway"),
           sock(io),
@@ -35,11 +35,9 @@ namespace excavator_com3_can
           send_pilot_cmd_2_timer(io, boost::asio::chrono::milliseconds(initial_interval)),
           send_front_vel_cmd_timer(io, boost::asio::chrono::milliseconds(initial_interval)),
           send_tracks_vel_cmd_timer(io, boost::asio::chrono::milliseconds(initial_interval)),
-          send_machine_setting_cmd_timer(io, boost::asio::chrono::milliseconds(initial_interval))
+          send_machine_setting_cmd_timer(io, boost::asio::chrono::milliseconds(initial_interval)),
+          dead_zone(dead_zone_value)
     {
-      this->declare_parameter("can_port", "can");
-      this->declare_parameter("dbc_path", "excavator_com3.dbc");
-
       const auto idx = canary::get_interface_index(can_port);
       auto const ep = canary::raw::endpoint{idx};
       sock.open();
@@ -396,22 +394,22 @@ namespace excavator_com3_can
         {
           if (msg->joint_name[i] == "swing_joint")
           {
-            effort2pilot_pressure(msg->effort[i], pilot_cmd_1->swing_left, pilot_cmd_1->swing_right);
+            effort2pilot_pressure(msg->effort[i], pilot_cmd_1->swing_left, pilot_cmd_1->swing_right,dead_zone[7],dead_zone[6]);
             front_vel_cmd->swing_target_anguler_velocity = msg->velocity[i];
           }
           else if (msg->joint_name[i] == "boom_joint")
           {
-            effort2pilot_pressure(msg->effort[i], pilot_cmd_1->boom_down, pilot_cmd_1->boom_up);
+            effort2pilot_pressure(msg->effort[i], pilot_cmd_1->boom_down, pilot_cmd_1->boom_up,dead_zone[1],dead_zone[0]);
             front_vel_cmd->boom_target_anguler_velocity = msg->velocity[i];
           }
           else if (msg->joint_name[i] == "arm_joint")
           {
-            effort2pilot_pressure(msg->effort[i], pilot_cmd_1->arm_crowd, pilot_cmd_1->arm_dump);
+            effort2pilot_pressure(msg->effort[i], pilot_cmd_1->arm_crowd, pilot_cmd_1->arm_dump,dead_zone[2],dead_zone[3]);
             front_vel_cmd->arm_target_anguler_velocity = msg->velocity[i];
           }
           else if (msg->joint_name[i] == "bucket_joint")
           {
-            effort2pilot_pressure(msg->effort[i], pilot_cmd_1->bucket_crowd, pilot_cmd_1->bucket_dump);
+            effort2pilot_pressure(msg->effort[i], pilot_cmd_1->bucket_crowd, pilot_cmd_1->bucket_dump,dead_zone[4],dead_zone[5]);
             front_vel_cmd->bucket_target_anguler_velocity = msg->velocity[i];
           }
         }
@@ -429,12 +427,12 @@ namespace excavator_com3_can
         {
           if (msg->joint_name[i] == "left_track")
           {
-            effort2pilot_pressure(msg->effort[i], pilot_cmd_2->left_track_forward, pilot_cmd_2->left_track_backward);
+            effort2pilot_pressure(msg->effort[i], pilot_cmd_2->left_track_forward, pilot_cmd_2->left_track_backward,dead_zone[10],dead_zone[11]);
             tracks_vel_cmd->target_travel_left_velocity = msg->velocity[i];
           }
           else if (msg->joint_name[i] == "right_track")
           {
-            effort2pilot_pressure(msg->effort[i], pilot_cmd_2->right_track_forward, pilot_cmd_2->right_track_backward);
+            effort2pilot_pressure(msg->effort[i], pilot_cmd_2->right_track_forward, pilot_cmd_2->right_track_backward,dead_zone[9],dead_zone[10]);
             tracks_vel_cmd->target_travel_right_velocity = msg->velocity[i];
           }
         }
@@ -466,25 +464,31 @@ namespace excavator_com3_can
       is_emg_stop_enable = msg->data;
     }
 
-    void effort2pilot_pressure(double effort, double &out_plus, double &out_minus)
+    void effort2pilot_pressure(double effort, double &out_plus, double &out_minus, const double dead_zone_plus, const double dead_zone_minus)
     {
       const double max_effort = 1;//=100[%]
       const double max_phys_value = 5;//[Mpa]
+      const double zero_input_th = 0.001;
       if (std::abs(effort) > max_effort)
         effort = max_effort * std::signbit(effort);
 
       // ZX200では最大パイロット圧は5MPaなので以下の通りeffort[％]をout[MPa]に変換する。
       // 汎用的にこのノードを利用するためには係数を取得してinputに乗算するか、
       // ここでは物理量を扱わず、よりハードウェアに近い下位のソフトウェアで係数をかける必要がある。
-      if (effort > 0.)
+      if( std::abs(effort) < zero_input_th )
       {
-        out_plus = std::abs(effort / max_effort * max_phys_value);
+        out_plus = 0;
+        out_minus = 0;
+      }
+      else if(effort > 0.)
+      {
+        out_plus = (std::abs(effort)+dead_zone_plus) / max_effort * max_phys_value;
         out_minus = 0;
       }
       else
       {
         out_plus = 0;
-        out_minus = std::abs(effort / max_effort * max_phys_value);
+        out_minus = (std::abs(effort)+dead_zone_minus) / max_effort * max_phys_value;
       }
     }
 
@@ -614,7 +618,7 @@ namespace excavator_com3_can
     tf2::Quaternion quat_tf;
 
     uint8_t is_pose_set, is_js_set;
-
+    const std::vector<double> dead_zone;
     rclcpp::Time last_front_cmd_time, last_tracks_cmd_time, last_twist_cmd_time, last_machine_setting_cmd_time;
   };
 }
