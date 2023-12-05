@@ -469,8 +469,6 @@ namespace excavator_com3_can
       const double max_effort = 1;//=100[%]
       const double max_phys_value = 5;//[Mpa]
       const double zero_input_th = 0.001;
-      if (std::abs(effort) > max_effort)
-        effort = max_effort * std::signbit(effort);
 
       // ZX200では最大パイロット圧は5MPaなので以下の通りeffort[％]をout[MPa]に変換する。
       // 汎用的にこのノードを利用するためには係数を取得してinputに乗算するか、
@@ -482,13 +480,15 @@ namespace excavator_com3_can
       }
       else if(effort > 0.)
       {
-        out_plus = (std::abs(effort)+dead_zone_plus) / max_effort * max_phys_value;
+        out_plus = std::min((std::abs(effort)+dead_zone_plus), max_effort) / max_effort * max_phys_value;
         out_minus = 0;
+        // RCLCPP_INFO(this->get_logger(), "out_plus: %f", out_plus);
       }
       else
       {
         out_plus = 0;
-        out_minus = (std::abs(effort)+dead_zone_minus) / max_effort * max_phys_value;
+        out_minus = std::min((std::abs(effort)+dead_zone_minus), max_effort) / max_effort * max_phys_value;
+        // RCLCPP_INFO(this->get_logger(), "out_minus: %f", out_minus);
       }
     }
 
