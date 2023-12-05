@@ -26,7 +26,7 @@ def generate_launch_description():
     )
     declare_can_port = DeclareLaunchArgument(
         "can_port",
-        default_value="vcan0",
+        default_value="can0",
         description=""
     )
     declare_dbc_path = DeclareLaunchArgument(
@@ -51,7 +51,7 @@ def generate_launch_description():
         # element 9:right track backward
         # element 10:left track forward
         # element 11:left track backward
-        default_value='[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0., 0., 0., 0.]',
+        default_value='[0.162, 0.161, 0.165, 0.213, 0.160, 0.153, 0.178, 0.189, 0., 0., 0., 0.]',
         description="Dead zone values for hydraulic actuator"
     )
 
