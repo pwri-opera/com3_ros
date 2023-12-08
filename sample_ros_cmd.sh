@@ -21,6 +21,9 @@
 
 ros2 topic pub /zx200/front_cmd com3_msgs/msg/JointCmd "{joint_name: ['boom_joint','arm_joint','bucket_joint','swing_joint', 'bucket_end_joint'], position: [0.0,0,0,0,0], velocity: [0,0,0,0,0], effort: [0, 0, 0, 0, 0]}" -r 10
 
+# 非常停止
+# ros2 topic pub /zx200/emg_stop std_msgs/msg/Bool "data: true" 
+
 # ros2 topic pub /zx200/tracks_cmd com3_msgs/msg/JointCmd "{joint_name: ['left_track','right_track'], position: [0,0], velocity: [0,0], effort: [0.1,0.1]}" -r 10
 
 
