@@ -36,6 +36,21 @@ ament_target_dependencies(excavator_com3_relay
   geometry_msgs
   sensor_msgs
 )
+
+add_executable(commander src/excavator_com3_commander.cpp)
+ament_target_dependencies(commander
+  rclcpp
+  com3_msgs
+  std_msgs
+)
+
+add_executable(responser src/excavator_com3_responser.cpp)
+ament_target_dependencies(responser
+  rclcpp
+  com3_msgs
+  std_msgs
+)
+
 target_link_libraries(excavator_com3_relay
   canary::canary
   boost_system
@@ -47,6 +62,8 @@ target_link_libraries(excavator_com3_relay
 
 install(TARGETS 
   excavator_com3_relay
+  commander
+  responser
   DESTINATION lib/${PROJECT_NAME}
 )
 
