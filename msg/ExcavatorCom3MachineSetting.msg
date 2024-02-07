@@ -2,7 +2,7 @@
 # valid number is from 900 to 2500.
 float64 engine_rpm
 
-# bool engine_off # false = on, true = on
+# bool hydraulic_off # false = on, true = on
 # bool hydraulic_off # false = on, true = off
 
 # power mode
@@ -20,10 +20,6 @@ bool working_mode_notice
 # yellow led setting
 # 0:Off, 1:Blinking, 2:On
 uint8 yellow_led_mode
-
-# horn setting 
-# false:Off, true:On
-bool horn
 
 # control mode of front joints.
 # 0:Off, 1:effort, 2:velocity
