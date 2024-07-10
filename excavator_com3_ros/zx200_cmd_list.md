@@ -9,7 +9,7 @@
 |  | 刃先位置指令1 | その他 | - | MoveGroupInterface | - | - |
 |  | 刃先位置指令2 | action | /(excavator_name)/move_group | moveit_msgs/action/MoveGroup | - | - |
 |  | 走行経路指令1 | topic | /(excavator_name)/goal_pose | geometry_msgs/msg/PoseStamped | - | - |
-|  | 走行経路指令2 | action | /(excavator_name)/navigate_to_pose | nas2_msgs/msg/NavigateToPose | - | 　 |
+|  | 走行経路指令2 | action | /(excavator_name)/navigate_to_pose | nav2_msgs/msg/NavigateToPose | - | 　 |
 | 油圧ショベルから外部装置への出力 | 各関節の角度、角速度 | topic | /(excavator_name)/joint_state | sensor_msgs/msg/JointState | - | name:[bucket_joint, arm_joint, boom_joint, swing_joint, ・・・・・]<br>TBD |
 |  | ローカル座標系における車両の中心位置姿勢 | topic | /(excavator_name)/odom_pose | nav_msgs/msg/Odometry | 　 | 　 |
 |  | グローバル座標(平面直角座標)系における車体の中心位置姿勢 | topic | /(excavator_name)/glocal_pose | nav_msgs/msg/Odometry | 　 | 　 |
