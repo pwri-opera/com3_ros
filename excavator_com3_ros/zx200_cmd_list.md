@@ -10,8 +10,9 @@
 |  | 刃先位置指令2 | action | /(excavator_name)/move_group | moveit_msgs/action/MoveGroup | - | - |
 |  | 走行経路指令1 | topic | /(excavator_name)/goal_pose | geometry_msgs/msg/PoseStamped | - | - |
 |  | 走行経路指令2 | action | /(excavator_name)/navigate_to_pose | nav2_msgs/msg/NavigateToPose | - | 　 |
-| 油圧ショベルから外部装置への出力 | 各関節の角度、角速度 | topic | /(excavator_name)/joint_state | sensor_msgs/msg/JointState | - | name:[bucket_joint, arm_joint, boom_joint, swing_joint, ・・・・・]<br>TBD |
-|  | ローカル座標系における車両の中心位置姿勢 | topic | /(excavator_name)/odom_pose | nav_msgs/msg/Odometry | 　 | 　 |
-|  | グローバル座標(平面直角座標)系における車体の中心位置姿勢 | topic | /(excavator_name)/glocal_pose | nav_msgs/msg/Odometry | 　 | 　 |
-|  | 油圧アクチュエータのメイン/パイロット圧力 | topic | TBD | 　 | 　 | 　 |
-|  | 車体状態 | topic | 　 | com3_msgs/msg/ExcavatorCom3MachineState | bool lock_cmd_state<br>bool pilot_shutoff_valve_state<br>bool system_error <br>bool can_error_pl<br>bool can_error_body<br>bool can_error_ict<br>bool lock_receiver_error<br>bool emergency_stop_receiver_error<br>bool switch_error<br>uint8 control_state<br>uint8 hydraulic_oil_temp<br>bool engine_state<br>uint8 alive_counter | 　 |
+| 油圧ショベルから外部装置への出力 | 各関節の角度、角速度 | topic | /(excavator_name)/joint_state | sensor_msgs/msg/JointState | - | name:[bucket_joint, arm_joint, boom_joint, swing_joint] |
+|  | ローカル座標系における車両の中心位置姿勢 | topic | /(excavator_name)/odom_pose | nav_msgs/msg/Odometry | /(excavator_name)/odom_pose　 | 　 |
+|  | グローバル座標(平面直角座標)系における車体の中心位置姿勢 | topic | /(excavator_name)/glocal_pose | nav_msgs/msg/Odometry | - | - |
+|  | 油圧アクチュエータのメイン/パイロット圧力 | topic | /(excavator_name)/pilot_fluid_pressure | com3_ros/sensor_msgs/FluidPressure[] | 　 | 　 |
+|  | 車体状態 | topic | /(excavator_name)/diagnostic | diagnostic_msgs::msg::DiagnosticArray | System Updater<br>State Updater<br>Error Updater
+ | 　 |
