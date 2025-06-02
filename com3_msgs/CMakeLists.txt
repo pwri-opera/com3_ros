@@ -46,6 +46,7 @@ else()
   find_package(rosidl_default_generators REQUIRED)
   rosidl_generate_interfaces(${PROJECT_NAME}
     "msg/ExcavatorCom3MachineSetting.msg"
+    "msg/CrawlerCarrierCom3MachineSetting.msg"
     "msg/JointCmd.msg"
     "msg/FluidPressureArray.msg"
     "srv/DumpUp.srv"
