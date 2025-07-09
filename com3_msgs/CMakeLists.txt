@@ -31,7 +31,8 @@ if(ROS1)
     "ExcavatorCom3MachineSetting.msg"
     "JointCmd.msg"
     "FluidPressureArray.msg"
-    "DumpSwingAngle.action"
+    "SetSwingAngle.action"
+    "SetDumpAngle.action"
   )
   generate_messages(
     DEPENDENCIES
@@ -49,7 +50,8 @@ else()
     "msg/CrawlerCarrierCom3MachineSetting.msg"
     "msg/JointCmd.msg"
     "msg/FluidPressureArray.msg"
-    "action/DumpSwingAngle.action"
+    "action/SetSwingAngle.action"
+    "action/SetDumpAngle.action"
     DEPENDENCIES std_msgs sensor_msgs# Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
   )
   ament_package()
