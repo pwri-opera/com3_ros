@@ -31,6 +31,8 @@ if(ROS1)
     "ExcavatorCom3MachineSetting.msg"
     "JointCmd.msg"
     "FluidPressureArray.msg"
+    "BulldozerCom3MachineSetting.msg"
+    "BulldozerState.msg"
   )
   generate_messages(
     DEPENDENCIES
@@ -46,6 +48,8 @@ else()
   rosidl_generate_interfaces(${PROJECT_NAME}
     "msg/ExcavatorCom3MachineSetting.msg"
     "msg/JointCmd.msg"
+    "msg/BulldozerCom3MachineSetting.msg"
+    "msg/BulldozerState.msg"
     "msg/FluidPressureArray.msg"
     DEPENDENCIES std_msgs sensor_msgs# Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
   )
