@@ -31,13 +31,10 @@ if(ROS1)
     "ExcavatorCom3MachineSetting.msg"
     "JointCmd.msg"
     "FluidPressureArray.msg"
-<<<<<<< HEAD
-    "BulldozerCom3MachineSetting.msg"
-    "BulldozerState.msg"
-=======
     "SetSwingAngle.action"
     "SetDumpAngle.action"
->>>>>>> main
+    "BulldozerCom3MachineSetting.msg"
+    "BulldozerState.msg"
   )
   generate_messages(
     DEPENDENCIES
