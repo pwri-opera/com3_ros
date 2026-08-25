@@ -1,4 +1,4 @@
-### COM3 ROS1/ROS2 Impremantation
+### COM3 ROS1/ROS2 Implementation
 
 - com3_msgs defines below msg:
   -  JointCmd
