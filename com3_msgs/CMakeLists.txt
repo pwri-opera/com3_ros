@@ -34,6 +34,7 @@ if(ROS1)
     "SetSwingAngle.action"
     "SetDumpAngle.action"
     "BulldozerCom3MachineSetting.msg"
+    "BullMcState.msg"
   )
   generate_messages(
     DEPENDENCIES
@@ -51,6 +52,7 @@ else()
     "msg/CrawlerCarrierCom3MachineSetting.msg"
     "msg/JointCmd.msg"
     "msg/BulldozerCom3MachineSetting.msg"
+    "msg/BullMcState.msg"
     "msg/FluidPressureArray.msg"
     "action/SetSwingAngle.action"
     "action/SetDumpAngle.action"
